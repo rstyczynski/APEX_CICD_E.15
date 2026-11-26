@@ -45,9 +45,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=success -f context=Unauthorized; then
+          if gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=success -f context=Unauthorized > publication.log 2>&1; then
             echo 'Unexpected publication authority'; exit 1
           fi
+          cat publication.log
+          grep -q 'HTTP 403' publication.log
       - name: Obtain candidate SQL as data
         if: github.event_name == 'pull_request_target'
         env:
