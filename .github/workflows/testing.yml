@@ -1,0 +1,44 @@
+name: Trusted Oracle validation
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oracle-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  oracle:
+    name: Oracle candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      oracle:
+        image: gvenzl/oracle-free:23-slim-faststart
+        env:
+          ORACLE_RANDOM_PASSWORD: 'yes'
+          APP_USER: candidate
+          APP_USER_PASSWORD: Disposable_Candidate_15
+        ports:
+          - 1521:1521
+        options: >-
+          --health-cmd healthcheck.sh --health-interval 10s
+          --health-timeout 5s --health-retries 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Obtain candidate SQL as data
+        if: github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ github.event.pull_request.head.sha }}
+        run: gh api "repos/$GITHUB_REPOSITORY/contents/candidate.sql?ref=$CANDIDATE" -H 'Accept: application/vnd.github.raw+json' > candidate.sql
+      - name: Install Oracle driver
+        run: python3 -m pip install oracledb==3.4.1
+      - name: Execute bounded application-user SQL
+        env:
+          CANDIDATE_PASSWORD: Disposable_Candidate_15
+        run: python3 validate.py
