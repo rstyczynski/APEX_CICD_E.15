@@ -11,6 +11,10 @@ on:
       candidate_pr:
         type: string
         required: false
+      inspection_pause:
+        type: boolean
+        default: false
+        required: false
 permissions:
   contents: read
 concurrency:
@@ -110,6 +114,10 @@ jobs:
         env:
           CANDIDATE_PASSWORD: Disposable_Candidate_15
         run: python3 validate.py
+
+      - name: Inspection interval
+        if: inputs.inspection_pause
+        run: sleep 60
 
   publish:
     name: Trusted publisher
