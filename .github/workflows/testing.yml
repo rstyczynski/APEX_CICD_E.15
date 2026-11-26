@@ -26,7 +26,7 @@ jobs:
           APP_USER: candidate
           APP_USER_PASSWORD: Disposable_Candidate_15
         ports:
-          - 1521:1521
+          - 127.0.0.1:1521:1521
         options: >-
           --health-cmd healthcheck.sh --health-interval 10s
           --health-timeout 5s --health-retries 40
@@ -104,8 +104,8 @@ jobs:
           NUMBER: ${{ github.event.pull_request.number }}
           OUTCOME: ${{ needs.oracle.result }}
         run: |
-          test "$(gh api repos/$GITHUB_REPOSITORY/pulls/$NUMBER --jq .head.sha)" = "$HEAD"
-          test "$(gh api repos/$GITHUB_REPOSITORY/commits/main --jq .sha)" = "$BASE"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMBER" --jq .head.sha)" = "$HEAD"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" = "$BASE"
           result=failure
           if test "$OUTCOME" = success; then result=success; fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" -f name=Integrated -f head_sha="$HEAD" -f status=completed -f conclusion="$result"
