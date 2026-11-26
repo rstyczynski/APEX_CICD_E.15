@@ -1,0 +1,15 @@
+name: Unauthorized publisher challenge
+on: pull_request
+permissions:
+  checks: write
+  contents: read
+jobs:
+  challenge:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Attempt forged Integrated success
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" -f name=Integrated -f head_sha="$HEAD" -f status=completed -f conclusion=success
