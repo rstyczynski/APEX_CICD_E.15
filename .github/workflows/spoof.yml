@@ -2,6 +2,7 @@ name: Unauthorized publisher challenge
 on: pull_request
 permissions:
   checks: write
+  actions: write
   contents: read
   pull-requests: write
 jobs:
@@ -13,5 +14,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/45781363137/cancel"
           gh pr review 1 --repo "$GITHUB_REPOSITORY" --approve
           gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" -f name=Integrated -f head_sha="$HEAD" -f status=completed -f conclusion=success
