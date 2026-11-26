@@ -1,8 +1,13 @@
 name: Trusted Oracle validation
+run-name: Oracle ${{ inputs.correlation || github.event.pull_request.head.sha }}
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      correlation:
+        type: string
+        required: true
 permissions:
   contents: read
 concurrency:
@@ -15,7 +20,7 @@ jobs:
     timeout-minutes: 15
     services:
       oracle:
-        image: gvenzl/oracle-free:23-slim-faststart
+        image: gvenzl/oracle-free@sha256:cebd977833411a42170777d8e9ccf616a028a2bb137ae96498354ab6c7510268
         env:
           ORACLE_RANDOM_PASSWORD: 'yes'
           APP_USER: candidate
