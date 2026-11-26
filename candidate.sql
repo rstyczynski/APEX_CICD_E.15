@@ -1,1 +1,1 @@
-select concat('Hello', ' World') from dual /* review freshness fixture */
+select concat('Hello', ' World') from dual /* revised freshness fixture */
