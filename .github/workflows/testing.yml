@@ -30,6 +30,24 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
+      - name: Initialize private sentinel
+        env:
+          ORACLE_CONTAINER: ${{ job.services.oracle.id }}
+        run: |
+          docker exec -i "$ORACLE_CONTAINER" sqlplus -s / as sysdba <<'SQL'
+          whenever sqlerror exit failure
+          alter session set container=FREEPDB1;
+          create table system.e15_private (value varchar2(80));
+          insert into system.e15_private values ('private sentinel');
+          commit;
+          SQL
+      - name: Challenge publication authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=success -f context=Unauthorized; then
+            echo 'Unexpected publication authority'; exit 1
+          fi
       - name: Obtain candidate SQL as data
         if: github.event_name == 'pull_request_target'
         env:
