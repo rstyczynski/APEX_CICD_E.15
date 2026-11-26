@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Initialize private sentinel
         env:
@@ -85,3 +85,27 @@ jobs:
         env:
           CANDIDATE_PASSWORD: Disposable_Candidate_15
         run: python3 validate.py
+
+  publish:
+    name: Trusted publisher
+    needs: oracle
+    if: always() && github.event_name == 'pull_request_target'
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Publish only current candidate outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BASE: ${{ github.sha }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          OUTCOME: ${{ needs.oracle.result }}
+        run: |
+          test "$(gh api repos/$GITHUB_REPOSITORY/pulls/$NUMBER --jq .head.sha)" = "$HEAD"
+          test "$(gh api repos/$GITHUB_REPOSITORY/commits/main --jq .sha)" = "$BASE"
+          result=failure
+          if test "$OUTCOME" = success; then result=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" -f name=Integrated -f head_sha="$HEAD" -f status=completed -f conclusion="$result"
