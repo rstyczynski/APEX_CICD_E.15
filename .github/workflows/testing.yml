@@ -62,6 +62,23 @@ jobs:
           CANDIDATE: ${{ github.event.pull_request.head.sha }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/contents/candidate.sql?ref=$CANDIDATE" -H 'Accept: application/vnd.github.raw+json' > candidate.sql
+      - name: Verify trusted Review matches candidate bytes
+        if: github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD" --jq '[.files[].filename]' > changed.json
+          python3 - <<'PYCODE'
+          import hashlib, json
+          from pathlib import Path
+          assert json.loads(Path('changed.json').read_text()) == ['candidate.sql'], 'unreviewed files'
+          report = json.loads(Path('review.json').read_text())
+          assert report['decision'] == 'accept'
+          assert hashlib.sha256(Path('candidate.sql').read_bytes()).hexdigest() == report['sql_sha256'], 'stale Review'
+          print('PASS trusted Review matches candidate bytes; candidate report cannot replace base report')
+          PYCODE
       - name: Install Oracle driver
         run: python3 -m pip install oracledb==3.4.1
       - name: Execute bounded application-user SQL
